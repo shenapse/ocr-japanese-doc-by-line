@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"name": "toc-orc",
+			"path": "."
+		}
+	],
+	"settings": {
+		"python.languageServer": "Pylance"
+	}
+}

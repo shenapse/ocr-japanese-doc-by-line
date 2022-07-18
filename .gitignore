@@ -1,0 +1,6 @@
+# ignore .history directory that is created by vscode extension
+/.history
+/gac.json
+*.png
+*.txt
+*.venv
