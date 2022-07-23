@@ -1,12 +1,14 @@
 // LOCAL SETTING specifically for the directory python
 {
 	"[python]": {
+		"editor.tabSize": 4,
+		"editor.insertSpaces": true,
 		"editor.formatOnSave": true,
 		"editor.codeActionsOnSave": {
 			"source.organizeImports": true
 		}
 	},
-	"python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python3",
+	"python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python3.10",
 	"python.autoComplete.extraPaths": [
 		"${workspaceFolder}/.venv/lib"
 	],
@@ -31,4 +33,5 @@
 	"python.formatting.blackArgs": [
 		"--line-length=120",
 	],
+	"editor.detectIndentation": false,
 }

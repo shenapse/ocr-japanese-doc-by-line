@@ -1,11 +1,12 @@
 {
 	"folders": [
 		{
-			"name": "toc-orc",
+			"name": "toc-ocr",
 			"path": "."
 		}
 	],
 	"settings": {
-		"python.languageServer": "Pylance"
+		"python.languageServer": "Pylance",
+		"editor.detectIndentation": false
 	}
 }

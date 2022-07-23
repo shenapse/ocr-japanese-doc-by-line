@@ -1,29 +1,27 @@
 [tool.poetry]
-name = "python"
+name = "toc-ocr"
 version = "0.1.0"
 description = ""
 authors = ["Your Name <you@example.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
-ipykernel = "^6.13.1"
-nptyping = "^2.1.1"
-mypy = "^0.961"
+python = "3.10.5"
+ipykernel = "^6.15.1"
+numpy = "^1.23.1"
+notebook = "^6.4.12"
+sklearn = "^0.0"
+opencv-python = "^4.6.0"
+google-cloud-vision = "^3.0.0"
+pyclustering = "^0.10.1"
+pytest = "^7.1.2"
+pdf2image = "^1.16.0"
+PyPDF2 = "^2.7.0"
+[tool.poetry.dev-dependencies]
+black = "^22.6.0"
+nptyping = "^2.2.0"
+mypy = "^0.971"
 flake8 = "^4.0.1"
 isort = "^5.10.1"
-black = {extras = ["jupyter"], version = "^22.3.0"}
-numpy = "^1.22.4"
-notebook = "^6.4.12"
-pyocr = "^0.8.3"
-pdf2image = "^1.16.0"
-google-cloud-vision = "^2.8.0"
-opencv-python = "^4.6.0"
-matplotlib = "^3.5.2"
-sklearn = "^0.0"
-pyclustering = "^0.10.1"
-
-[tool.poetry.dev-dependencies]
-
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
