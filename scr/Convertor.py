@@ -2,9 +2,6 @@ from __future__ import annotations
 
 import abc
 import itertools
-import pathlib
-from datetime import datetime as dt
-from fileinput import filename
 from typing import Any, Optional
 
 import cv2
@@ -22,7 +19,7 @@ class IConvertor(metaclass=abc.ABCMeta):
     def read_file(self, file: File) -> None:
         raise NotImplementedError()
 
-    def read_Mat_img(self, imgs: MatMat) -> None:
+    def read_Mat_imgs(self, imgs: MatMat) -> None:
         raise NotImplementedError()
 
     def save_imgs(self) -> None:
@@ -39,12 +36,10 @@ class IConvertor(metaclass=abc.ABCMeta):
 
 
 class Convertor(IConvertor):
-    __file: Optional[File]
-    __imgs: Optional[MatMat]
-    __imgs_byte: Optional[list[bytes]]
-
     def __init__(self) -> None:
-        self.__imgs = None
+        self.__file: Optional[File] = None
+        self.__imgs: list[Mat] = []
+        self.__imgs_byte: list[bytes] = []
 
     @property
     def get_file(self) -> File:
@@ -52,33 +47,28 @@ class Convertor(IConvertor):
         return self.__file
 
     @property
-    def get_img(self) -> MatMat:
-        assert self.__imgs is not None
+    def get_img(self) -> list[Mat]:
+        assert self.__imgs != []
         return self.__imgs
 
     @property
     def get_imgs_byte(self) -> list[bytes]:
-        assert self.__imgs_byte is not None
+        assert self.__imgs_byte != []
         return self.__imgs_byte
 
-    def read_Mat_img(self, imgs: list[Mat]) -> None:
+    def read_Mat_imgs(self, imgs: list[Mat]) -> None:
         # write after frame class is done.
         # also, determine in what form __img_bytes should be stored.
+        self.__imgs = imgs
         pass
 
-    def read_file(self, file: File) -> None:
-        if not file.is_set():
-            raise UnboundLocalError(f"{file.__doc__} has scanned nothing.")
-        # prevent overwriting imgs
-        assert self.__imgs is None
+    def read_file(self, file: File, which_sets: int = 0) -> None:
+        assert file is not None
+        sets: Paths = file.file_sets()[which_sets]
         if file.is_img_file():
-            self.__imgs = [
-                [cv2.imread(str(p)) for p in paths] for paths in file.file_sets
-            ]
-        elif file.is_bound_file():
-            self.__imgs = [self.__pdf_paths_to_cv(ps) for ps in file.file_sets]
-        else:  # for safety
-            raise ValueError(f"{file.__class__}.ext = {file.ext} unexpected.")
+            self.__imgs = [cv2.imread(str(p)) for p in sets]
+        else:
+            self.__imgs = self.__pdf_paths_to_cv(sets)
         self.__file = file
 
     def __is_None_or_error(self, obj: Any) -> bool:
@@ -87,14 +77,14 @@ class Convertor(IConvertor):
             raise ValueError(err_msg)
         return True
 
-    def get_byte_img(self, format=".jpeg", img: Optional[Mat] = None) -> bytes:
-        # write after finishing frame class
-        img_use = img if img is not None else self.__imgs
-        assert img_use is not None
-        _, encoded = cv2.imencode(format, img_use)
-        return encoded.tobytes()
+    # def get_byte_img(self, format=".jpeg", img: Optional[Mat] = None) -> bytes:
+    #     # write after finishing frame class
+    #     img_use = img if img is not None else self.__imgs
+    #     assert img_use is not None
+    #     _, encoded = cv2.imencode(format, img_use)
+    #     return encoded.tobytes()
 
-    def __pil2cv(self, pil_img: PIL_Img):
+    def __pil2cv(self, pil_img: PIL_Img) -> Mat:
         """PIL -> OpenCV"""
         image_array: Mat = np.array(pil_img, dtype=np.uint8)
         if image_array.ndim == 2:  # gray
@@ -114,35 +104,49 @@ class Convertor(IConvertor):
         )
         return [self.__pil2cv(img) for img in images]
 
+    def save_img(self, img: Mat, name: str, dir: Path) -> bool:
+        d: Path = dir if dir.is_dir() else dir.parent
+        file_path: Path = d / name
+        return cv2.imwrite(str(file_path), img)
+
     def save_imgs(
-        self,
-        save_in_dirs: bool = True,
-        suffix: Optional[str] = None,
-        fmt_default: str = "jpg",
+        self, suffix: str = "_preview", fmt_default: str = "jpg", which_set: int = 0
     ):
         assert (f := self.__file) is not None
         # write better error handling
-        assert self.__imgs is not None
-        ex_paths: list[Paths] = f.get_expanded_paths()
-        assert len(ex_paths) == len(self.__imgs)
+        assert self.__imgs != []
+        ex_paths: list[tuple[Path, int]] = f.get_paths_with_pages()[which_set]
+        sum_pages: int = sum([item[1] for item in ex_paths])
+        assert len(self.__imgs) == sum_pages
         fmt = f.ext if f.ext in f.img_ext else fmt_default
+        suffix = suffix if suffix != "" else "_preview"
+        dir: Path = f.dirs()[which_set]
 
-        def gen_suf(suf: Optional[str]) -> str:
-            return suf if suf is not None else dt.now().strftime("_%Y%m%d")
-            # return suf if suf is not None else dt.now().strftime("_%Y%m%d_%s%f")
-
+        suf_list: list[str] = list(
+            itertools.chain.from_iterable(
+                [
+                    ["{}_{:0>2}".format(suffix, i) for i in range(0, m)]
+                    for _, m in ex_paths
+                ]
+            )
+        )
+        names: list[Path] = f.get_expanded_paths()[which_set]
         # save img files in dirs
-        # returns idx at which
+        # returns idx at which save failed
         pair_fail: list[tuple[Path, Mat]] = []
-        for d, imgs in enumerate(self.__imgs):
-            assert len(ex_paths[d]) == len(self.__imgs[d])
-            dir = f.dirs[d] if save_in_dirs else f.root_path
-            for i, img in enumerate(imgs):
-                file_name: str = f"{ex_paths[d][i].stem}{gen_suf(suffix)}.{fmt}"
-                file_path: str = str(dir / file_name)
-                if not cv2.imwrite(file_path, img):
-                    pair_fail.append((ex_paths[d][i], img))
+        for d, img in enumerate(self.__imgs):
+            name: str = f"{names[d].stem}{suf_list[d]}.{fmt}"
+            file_path: str = str(dir / name)
+            if not cv2.imwrite(file_path, img):
+                pair_fail.append((ex_paths[d][0], img))
         return pair_fail
+
+    def print(self):
+        print(f"number of imgs: {len(self.__imgs)}")
+        if (f := self.__file) is not None:
+            f.print()
+        else:
+            print("No file is set in Convertor instance.")
 
     # def display_img(self) -> None:
     #     """Open a np.array image in a normal window.
@@ -157,18 +161,3 @@ class Convertor(IConvertor):
     #     """Immediately close all displayed images"""
     #     cv2.destroyAllWindows()
     #     cv2.waitKey(1)
-
-
-if __name__ == "__main__":
-    import pprint
-
-    f = File("./")
-    f.scan_files(ext="png", recursive=True)
-    # print(f.file_sets)
-    # pprint.pprint(f.get_expanded_paths())
-    c = Convertor()
-    c.read_file(f)
-    print(c.save_imgs(save_in_dirs=False))
-    # f = Convertor().set_path(img_path)
-    # f.pdf_to_cv(img_path)
-    # print("ok! " + f"{img_path}")

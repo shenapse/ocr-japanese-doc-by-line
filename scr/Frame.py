@@ -1,12 +1,17 @@
+from __future__ import annotations
+
 import abc
+from ctypes import cast
+from math import ceil
 
 import cv2
 import numpy as np
 from nptyping import NDArray, assert_isinstance
 from sklearn.cluster import KMeans
 
-from Rect import Contours, Rect, Rects
-from Type_Alias import Mat
+from Convertor import Convertor
+from Rect import Contours, Rects
+from Type_Alias import Mat, Path, Pixel_dtype, Point_dtype
 
 
 class IFrame(metaclass=abc.ABCMeta):
@@ -18,7 +23,7 @@ class IFrame(metaclass=abc.ABCMeta):
     #     raise NotImplementedError()
 
     @abc.abstractclassmethod
-    def process(self) -> None:
+    def get_processed_imgs(self, img: Mat) -> Mat:
         raise NotImplementedError()
 
     @abc.abstractclassmethod
@@ -31,8 +36,11 @@ class IFrame(metaclass=abc.ABCMeta):
 
 
 class Frame(IFrame, Rects):
-    img: Mat
-    gray_img: Mat
+    __blur_rate: float = 1.5
+    __offset_rate: float = 3.0
+    # instance var
+    # img: Mat
+    # gray_img: Mat
     # height:int
     # width:int
 
@@ -44,38 +52,34 @@ class Frame(IFrame, Rects):
         self.height = img.shape[0]
         self.width = img.shape[1]
         # Rects.__init__(self, contours=self.__find_contours())
-        super().__init__(contours=self.__find_contours())
-
-    # def read_img(self, img: Img) -> None:
-    #     self.__check_rgb_img(img)
-    #     self.img = img
-
-    def get_rectangles(self) -> Rects:
-        return self.get_rects()
+        super().__init__(arg=self.__find_rects())
 
     def get_contours(self) -> Contours:
-        return self.get_contours()
+        return Rects.get_contours(self)
 
-    def __check_rgb_img(self, img: Mat, np_dtype=np.uint8) -> bool:
+    def __check_rgb_img(self, img: Mat) -> bool:
         # instance check
         assert_isinstance(img, NDArray)
         # dtype check
-        assert np.issubdtype(img.dtype, np_dtype)
+        assert np.issubdtype(img.dtype, Pixel_dtype)
         # shape check
         assert img.ndim in (2, 3)
         if len(S := img.shape) == 3:
             assert S[-1] == 3
         return True
 
-    def __to_odd(self, x: int) -> int:
-        return x if x % 2 == 1 else x - 1
+    def __to_odd(self, x: float) -> int:
+        y: int = ceil(x)
+        return y if y % 2 == 1 else y - 1
 
     def __get_effective_zone(
-        self, offset_percent: int = 1, thr: int = 250
+        self, offset_percent: float = __offset_rate, thr: int = 250
     ) -> tuple[int, int, int, int]:
+        w: int = self.width
+        h: int = self.height
         # blur the image and turn it into black-white
-        gauss_x: int = self.__to_odd(max(offset_percent * self.width // 100, 1))
-        gauss_y: int = self.__to_odd(max(offset_percent * self.height // 100, 1))
+        gauss_x: int = self.__to_odd(max(offset_percent * w // 100, 1))
+        gauss_y: int = self.__to_odd(max(offset_percent * h // 100, 1))
         img_blur: Mat = cv2.GaussianBlur(
             self.gray_img, (self.__to_odd(gauss_x), self.__to_odd(gauss_y)), 0
         )
@@ -85,9 +89,9 @@ class Frame(IFrame, Rects):
             img_reversed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE
         )
         # get the right and left end
-        left_end: int = self.width
+        left_end: int = w
         right_end: int = 0
-        upper_end: int = self.height
+        upper_end: int = h
         lower_end: int = 0
         for contour in contours:
             x, y, w, h = cv2.boundingRect(contour)
@@ -97,16 +101,15 @@ class Frame(IFrame, Rects):
             lower_end = max(lower_end, y + h)
         return left_end, right_end, upper_end, lower_end
 
-    def __generate_frame(self, blur_rate: int = 2) -> Mat:
+    def __generate_frame(self, blur_rate: float = __blur_rate) -> Mat:
         """generate a temporary frame to be processed further."""
 
         def generate_row_label_Kmeans(img: Mat, n_clusters=3):
             """generate label for each row"""
             # make sure that input image has no columns
             if img.shape[0] != img.size:
-                raise TypeError(
-                    "img has multiple columns. It should be of at most 1 column."
-                )
+                err_msg = "img has multiple columns. It must be of 1 column."
+                raise TypeError(err_msg)
             model = KMeans(n_clusters=n_clusters)
             model.fit(img_r := img.reshape(-1, 1))
             return model.predict(img_r), model.cluster_centers_
@@ -140,52 +143,58 @@ class Frame(IFrame, Rects):
         _, frame = cv2.threshold(frame, 127, 255, cv2.THRESH_BINARY)
         return cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-    def __find_contours(self) -> Contours:
-        contours, _ = cv2.findContours(
+    def __find_rects(self) -> Rects:
+        con, _ = cv2.findContours(
             self.__generate_frame(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
-        return np.array(contours)
+        return Rects(np.array(con, dtype=Point_dtype)).sorted()
 
-    def expand_contours(self, contours: Contours):
-        """expand in y-axis each contour to the internal division point (IVP) of neighboring contours.
-        IVP is calculated based on the heights of two neighboring contours.
+    def expand_rects(self) -> None:
+        """expand in y-axis each rects.
+
+        expand to the internal division point (IVP) of neighboring contours.
+        IVP is calculated based on the heights**2 of two neighboring contours.
         """
-        Len = len(contours)
-        contours = sort_contours(contours)
-        # calculate ratio of internal division by which the amount of expansion is determined
-        # the ratio is based on the squared heights of adjacent contours
-        contours_height = get_contours_height(contours)
+        # assume self is sorted possibly by find_rects()
+        Len = len(self)
+        # calculate ratio of internal division
+        # the ratio is used for the amount of expansion
+        # it is based on the squared heights of adjacent contours
+        contours_height: NDArray = np.array([r.height for r in self])
         height_sq = contours_height**2
         denom = np.roll(height_sq, -1) + height_sq
         ratio_for_lower = height_sq[:-1] / denom[:-1]
         # vertical distance between neighboring contours
+        contours: Contours = self.get_contours()
         dist = np.array(
             [(contours[i + 1][0] - contours[i][1]) for i in range(0, Len - 1)]
         )
-        dist = np.array(dist, dtype=np.int32).flatten()[1::2]
+        dist = np.array(dist, dtype=Point_dtype).flatten()[1::2]
         # amount of expansion
-        plus_for_lower_contour = np.array(ratio_for_lower * dist, dtype=np.int32)
-        plus_for_upper_contour = (
-            dist - plus_for_lower_contour
+        plus_for_lower_rect = np.array(ratio_for_lower * dist).astype(Point_dtype)
+        plus_for_upper_rect = (dist - plus_for_lower_rect).astype(
+            Point_dtype
         )  # amount for the upper of edge of lower contours
         for i in range(0, Len):
             if i < Len - 1:
-                contours[i] = __get_expanded_contour(
-                    contours[i], plus_for_upper_contour[i], expand_upper_edge=False
-                )
-                contours[i + 1] = __get_expanded_contour(
-                    contours[i + 1], plus_for_lower_contour[i], expand_upper_edge=True
-                )
-            # expand the free edge of the first and the last contour by the same amount
+                # expand up the upper rect
+                self[i].expand_below(plus_for_upper_rect[i])
+                # expand down the lower rect
+                self[i + 1].expand_above(plus_for_lower_rect[i])
+            # expand the edges of the first and last contour by the same amount
             if i == 0:
-                contours[i] = __get_expanded_contour(
-                    contours[i], plus_for_upper_contour[i], expand_upper_edge=True
-                )
-            if i == Len - 2:
-                contours[i + 1] = __get_expanded_contour(
-                    contours[i + 1], plus_for_lower_contour[i], expand_upper_edge=False
-                )
-        return contours
+                self[i].expand_above(plus_for_upper_rect[i])
+            if i == Len - 1:
+                self[i].expand_below(plus_for_lower_rect[i - 1])
+
+    def draw_contours(
+        self, color: tuple[int, int, int] = (0, 255, 0), lw: int = 2
+    ) -> Mat:
+        return cv2.drawContours(self.img, self.get_contours(), -1, color, lw)
+
+    def get_processed_img(self) -> Mat:
+        self.expand_rects()
+        return self.draw_contours()
 
 
 if __name__ == "__main__":
@@ -194,7 +203,9 @@ if __name__ == "__main__":
     img_path = "006.png"
     img = cv2.imread(img_path)
     f = Frame(img)
-    print(f"ok! {img_path}")
-    print(f"width = {f.width}")
-    f.sort()
-    print(f"rects = {f.rects[0].get_rect_property()}")
+    f.expand_rects()
+
+    # save
+    img_drawn: Mat = f.draw_contours()
+    c = Convertor()
+    print(c.save_imgs())
