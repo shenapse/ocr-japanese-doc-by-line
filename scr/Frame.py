@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import abc
-from ctypes import cast
 from math import ceil
 
 import cv2
@@ -10,6 +9,7 @@ from nptyping import NDArray, assert_isinstance
 from sklearn.cluster import KMeans
 
 from Convertor import Convertor
+from File import File
 from Rect import Contours, Rects
 from Type_Alias import Mat, Path, Pixel_dtype, Point_dtype
 
@@ -36,21 +36,23 @@ class IFrame(metaclass=abc.ABCMeta):
 
 
 class Frame(IFrame, Rects):
-    __blur_rate: float = 1.5
-    __offset_rate: float = 3.0
     # instance var
     # img: Mat
     # gray_img: Mat
     # height:int
     # width:int
 
-    def __init__(self, img: Mat) -> None:
+    def __init__(
+        self, img: Mat, blur_rate: float = 1.0, offset_rate: float = 3.0
+    ) -> None:
         assert self.__check_rgb_img(img)
         self.img = img
         # cv2.cvtColor accepts img:Mat, not Img
         self.gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         self.height = img.shape[0]
         self.width = img.shape[1]
+        self.__blur_rate: float = blur_rate
+        self.__offset_rate: float = offset_rate
         # Rects.__init__(self, contours=self.__find_contours())
         super().__init__(arg=self.__find_rects())
 
@@ -72,11 +74,14 @@ class Frame(IFrame, Rects):
         y: int = ceil(x)
         return y if y % 2 == 1 else y - 1
 
-    def __get_effective_zone(
-        self, offset_percent: float = __offset_rate, thr: int = 250
-    ) -> tuple[int, int, int, int]:
+    def __to_gray(self, img: Mat) -> Mat:
+        L = len(img.shape)
+        return img if L == 2 else cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    def __get_effective_zone(self, thr: int = 250) -> tuple[int, int, int, int]:
         w: int = self.width
         h: int = self.height
+        offset_percent: float = self.__offset_rate
         # blur the image and turn it into black-white
         gauss_x: int = self.__to_odd(max(offset_percent * w // 100, 1))
         gauss_y: int = self.__to_odd(max(offset_percent * h // 100, 1))
@@ -101,8 +106,11 @@ class Frame(IFrame, Rects):
             lower_end = max(lower_end, y + h)
         return left_end, right_end, upper_end, lower_end
 
-    def __generate_frame(self, blur_rate: float = __blur_rate) -> Mat:
+    def generate_frame(self) -> Mat:
         """generate a temporary frame to be processed further."""
+        w: int = self.width
+        h: int = self.height
+        blur_rate: float = self.__blur_rate
 
         def generate_row_label_Kmeans(img: Mat, n_clusters=3):
             """generate label for each row"""
@@ -114,25 +122,31 @@ class Frame(IFrame, Rects):
             model.fit(img_r := img.reshape(-1, 1))
             return model.predict(img_r), model.cluster_centers_
 
-        img_blur = cv2.GaussianBlur(
-            self.gray_img,
-            (
-                self.__to_odd(blur_rate * (w := self.width) // 100),
-                self.__to_odd(blur_rate * (h := self.height) // 100),
-            ),
-            3,
-        )
-        avg_color_per_row = np.average(img_blur, axis=1)
-        # detect by kmeans the rows of no information
-        labels, centers = generate_row_label_Kmeans(avg_color_per_row, 3)
-        # this cluster has very unlikely to intersect text
-        label_for_absence = np.argmax(centers)
-        # create frame for contours.
-        # it should have the same size as input image
-        frame = np.zeros((h, w, 3), np.uint8)
-        frame += 255  # make them all white
-        if np.any(labels != label_for_absence):
-            frame[labels != label_for_absence] = 0
+        # add new
+        def generate_pre_frame(img, blur_rate: float = blur_rate) -> Mat:
+            img = self.__to_gray(img)
+            size_x: int = self.__to_odd(blur_rate * (w // 100))
+            size_y: int = self.__to_odd(blur_rate * (h // 100))
+            img_blur = cv2.blur(src=img, ksize=(size_x, size_y))
+            avg_color_per_row = np.average(img_blur, axis=1)
+            # detect by kmeans the rows of no information
+            labels, centers = generate_row_label_Kmeans(avg_color_per_row, 3)
+            # this cluster has very unlikely to intersect text
+            label_for_absence = np.argmax(centers)
+            # create frame for contours.
+            # it should have the same size as input image
+            frame = np.zeros((h, w, 3), Pixel_dtype)
+            frame += 255  # make them all white
+            if np.any(labels != label_for_absence):
+                frame[labels != label_for_absence] = 0
+            return frame
+
+        gray = self.gray_img.copy()
+        # apply twice to overwhelm thin white
+        frame = generate_pre_frame(gray)
+        # cv2.imwrite("test_frame1.png", frame)
+        frame = generate_pre_frame(frame, blur_rate=blur_rate / 2)
+        # cv2.imwrite("test_frame2.png", frame)
 
         # fill non-effective zone black
         left_end, right_end, _, _ = self.__get_effective_zone()
@@ -141,11 +155,12 @@ class Frame(IFrame, Rects):
         frame[0:h, right_end:w] = 255
         frame = cv2.bitwise_not(frame)
         _, frame = cv2.threshold(frame, 127, 255, cv2.THRESH_BINARY)
+        # cv2.imwrite("test_frame3.png", frame)
         return cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
     def __find_rects(self) -> Rects:
         con, _ = cv2.findContours(
-            self.__generate_frame(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+            self.generate_frame(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
         return Rects(np.array(con, dtype=Point_dtype)).sorted()
 
@@ -192,20 +207,32 @@ class Frame(IFrame, Rects):
     ) -> Mat:
         return cv2.drawContours(self.img, self.get_contours(), -1, color, lw)
 
-    def get_processed_img(self) -> Mat:
+    def get_framed_img(self) -> Mat:
         self.expand_rects()
         return self.draw_contours()
+
+    def get_cropped_imgs(self) -> list[Mat]:
+        img: Mat = self.img
+        images: list[Mat] = []
+        for contour in self.get_contours():
+            x, y, w, h = cv2.boundingRect(contour)
+            u = y + h
+            r = x + w
+            images.append(img[y:u, x:r])
+        return images
 
 
 if __name__ == "__main__":
     # import cv2
-
-    img_path = "006.png"
-    img = cv2.imread(img_path)
-    f = Frame(img)
-    f.expand_rects()
-
+    path = Path("./test/005.png")
+    F = File()
+    F.read_file(path)
+    C = Convertor()
+    C.read_file(F)
+    imgs = C.imgs
+    img: Mat = imgs[0]
+    blur_rate = 1.0
+    f = Frame(img, blur_rate=blur_rate)
     # save
     img_drawn: Mat = f.draw_contours()
-    c = Convertor()
-    print(c.save_imgs())
+    cv2.imwrite("test_frame_drawn.jpeg", img)

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import itertools
-from typing import Final, Optional
+from pprint import pprint
+from typing import Final
 
 from PyPDF2 import PdfFileReader
 
@@ -13,31 +14,24 @@ class File:
     __img_ext: Final = ["jpeg", "jpg", "png", "gif"]
     __bound_ext: Final = ["pdf"]
     __supported_ext: Final = __img_ext + __bound_ext
+    NOT_SET: Final = "NOT SET"
     # instance var
-    # __root_path: Path
-    # __dirs: Paths
+    # __root: Path
     # __ext: Optional[str] = None
-    # __file_sets: list[Paths]
+    # __paths:Paths = []
 
-    def __init__(
-        self,
-        root: str | Path = Path.cwd(),
-        dirs: Paths = [],
-        file_sets: list[Paths] = [],
-        ext: Optional[str] = None,
-    ) -> None:
-        self.__root_path: Path = Path(root)
-        self.__dirs: Paths = dirs
-        self.__ext: Optional[str] = None
-        self.__file_sets: list[Paths] = file_sets
-        self.__ext: Optional[str] = ext
-        pass
+    def __init__(self) -> None:
+        self.__root: Path = Path.cwd()
+        self.__paths: Paths = []
+        self.__ext: str = File.NOT_SET
 
-    def root_path(self, as_abs: bool = False) -> Path:
-        return self.__root_path.resolve() if as_abs else self.__root_path
+    @property
+    def root(self) -> Path:
+        return self.__root
 
-    def dirs(self, as_abs=False) -> Paths:
-        return [p.resolve() for p in self.__dirs] if as_abs else self.__dirs
+    @property
+    def paths(self) -> Paths:
+        return self.__paths
 
     @property
     def supported_ext(self) -> list[str]:
@@ -53,64 +47,40 @@ class File:
 
     @property
     def ext(self) -> str:
-        if self.__ext is None:
+        if not self.is_set():
             raise ValueError("File.__ext has not been set.")
         return self.__ext
-
-    def file_sets(self, as_abs: bool = False) -> list[Paths]:
-        return (
-            [[p.resolve() for p in paths] for paths in self.__file_sets]
-            if as_abs
-            else self.__file_sets
-        )
 
     def read_file(self, path: Path) -> None:
         assert path.is_file()
         assert (ext := self.__get_ext(path)) in self.supported_ext
         self.__ext = ext
-        self.__root_path = path.parent
-        self.__dirs = [self.root_path()]
-        self.__file_sets = [[path]]
+        self.__root = path.parent
+        self.__paths = [path]
 
-    def read_dir(self, ext: str, root: Path = Path.cwd(), recursive=False) -> None:
+    def read_dir(self, ext: str, dir: Path = Path.cwd()) -> None:
+        assert dir.is_dir()
         assert ext in self.supported_ext
+        assert self.__is_valid_path(dir)
         self.__ext = ext
-        assert self.__is_valid_path(root)
-        self.__root_path = root
-        dirs: Paths = self.__scan_dirs(root) if recursive else [root]
-        self.__file_sets = [
-            f for dir in dirs if (f := self.__list_files(ext, dir)) != []
-        ]
-        # construct self.__dirs as it might have no files with the asked ext.
-        # Skip such uninteresting folders
-        if self.__file_sets is not None:
-            self.__dirs = [f[0].parent for f in self.__file_sets]
-        else:
-            raise Exception(f"{self.__class__}.file_sets is not set.")
+        self.__root = dir
+        key = ".".join(["*", ext])
+        self.__paths = sorted([f for f in list(dir.glob(key)) if f.is_file()])
 
     def is_empty(self) -> bool:
-        return self.file_sets == []
+        return self.paths == []
 
     def is_set(self) -> bool:
-        return self.__ext is not None
+        return self.__ext != File.NOT_SET
 
     def print(self):
-        print(f"root:\n{self.root_path(as_abs=True)}\n")
-        print(f"extension:\n{self.ext}\n")
-        print(f"directory:\n{self.dirs(as_abs=True)}\n")
-        print(f"file with n pages:\n{self.get_paths_with_pages(as_abs=True)}")
+        pprint(f"root:{self.root.resolve()}")
+        pprint(f"extension:{self.ext}")
+        files = [] if self.is_empty() else self.get_paths_with_pages(True)
+        pprint(f"file with n pages:{files}")
 
     def __get_ext(self, file_path: Path) -> str:
         return file_path.suffix[1:]
-
-    def __scan_dirs(self, dir: Path) -> Paths:
-        assert self.__is_valid_path(dir)
-        return list(dir.glob("**"))
-
-    def __list_files(self, ext: str, dir: Path) -> Paths:
-        assert self.__is_valid_path(dir)
-        key = ".".join(["*", ext])
-        return sorted([f for f in list(dir.glob(key)) if f.is_file()])
 
     def is_bound_file(self) -> bool:
         return self.ext in self.__bound_ext
@@ -128,27 +98,24 @@ class File:
             ValueError("\n".join(fault_path))
         return all_ok
 
-    def get_expanded_paths(self) -> list[Paths]:
-        assert self.__file_sets is not None
+    def get_expanded_paths(self) -> Paths:
+        assert not self.is_empty()
+        ps: Paths = self.paths
         if self.is_img_file():
-            return self.__file_sets
+            return ps
         elif self.is_bound_file():
-            return [
-                list(
-                    itertools.chain.from_iterable(
-                        [[p for _ in range(0, self.n_pages(p))] for p in ps]
-                    )
+            return list(
+                itertools.chain.from_iterable(
+                    [list(itertools.repeat(p, self.n_pages(p))) for p in ps]
                 )
-                for ps in self.__file_sets
-            ]
+            )
         else:
             raise ValueError(f"{self.__class__}.ext = {self.ext} unexpected.")
 
-    def get_paths_with_pages(self, as_abs=False) -> list[list[tuple[Path, int]]]:
-        assert (f := self.__file_sets) is not None
-        return [
-            [((p.resolve() if as_abs else p), self.n_pages(p)) for p in ps] for ps in f
-        ]
+    def get_paths_with_pages(self, as_abs=False) -> list[tuple[Path, int]]:
+        assert not self.is_empty()
+        ps: Paths = self.paths
+        return [((p.resolve() if as_abs else p), self.n_pages(p)) for p in ps]
 
     def n_pages(self, path: Path) -> int:
         return (
@@ -157,19 +124,12 @@ class File:
             else PdfFileReader(path).getNumPages()
         )
 
-    def get_nth(self, n: int) -> File:
-        return File(
-            root=self.root_path(),
-            dirs=[self.dirs()[n]],
-            file_sets=[self.file_sets()[n]],
-            ext=self.ext,
-        )
-
 
 if __name__ == "__main__":
 
-    path = "./"
-    f = File(path)
-    f.read_dir(ext="pdf", recursive=True)
+    path = Path("./test/toc3.pdf")
+    dir: Path = Path("./test")
+    f = File()
+    f.read_dir(ext="pdf", dir=dir)
+    f.read_file(path)
     f.print()
-    # print(f.get_expanded_paths())

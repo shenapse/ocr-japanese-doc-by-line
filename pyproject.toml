@@ -2,26 +2,25 @@
 name = "toc-ocr"
 version = "0.1.0"
 description = ""
-authors = ["Your Name <you@example.com>"]
+authors = ["shena<https://github.com/Shena4746/ocr-toc-python>"]
 
 [tool.poetry.dependencies]
 python = "3.10.5"
-ipykernel = "^6.15.1"
 numpy = "^1.23.1"
-notebook = "^6.4.12"
 sklearn = "^0.0"
 opencv-python = "^4.6.0"
 google-cloud-vision = "^3.0.0"
-pyclustering = "^0.10.1"
-pytest = "^7.1.2"
 pdf2image = "^1.16.0"
 PyPDF2 = "^2.7.0"
+img2pdf = "^0.4.4"
 [tool.poetry.dev-dependencies]
 black = "^22.6.0"
 nptyping = "^2.2.0"
 mypy = "^0.971"
 flake8 = "^4.0.1"
 isort = "^5.10.1"
+pytest = "^7.1.2"
+ipykernel = "^6.15.1"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
