@@ -55,8 +55,8 @@ jpeg や png を単体で読ませるなら, main.py で以下を実行すれば
 file = "./sample_files/la_003.png"
 # output directory for text file
 # default uses the directory of the input file,
-# i.e, sample_files directory in this case
-dir_out: Path = pathlib.Path("./out")
+# e.g., sample_files directory in this case
+dir_out: Path = Path("./out") # Path is the alias for pathlib.Path
 ocr_by_cloud_vision_api(file_or_dir=file, dir_out=dir_out)
 ```
 
@@ -65,7 +65,7 @@ ocr_by_cloud_vision_api(file_or_dir=file, dir_out=dir_out)
 ```python
 # for single but potentially multi page file such as zip or pdf
 file = "./sample_files/kernel.zip"
-dir_out: Path = pathlib.Path("./out")
+dir_out: Path = Path("./out")
 ocr_by_cloud_vision_api(file_or_dir=file, dir_out=dir_out)
 ```
 
@@ -75,6 +75,6 @@ ocr_by_cloud_vision_api(file_or_dir=file, dir_out=dir_out)
 ```python
 # for all png files in sample_files directory
 file = "./sample_files"
-dir_out: Path = pathlib.Path("./out")
+dir_out: Path = Path("./out")
 ocr_by_cloud_vision_api(file_or_dir=file, ext = "png", dir_out=dir_out)
 ```
