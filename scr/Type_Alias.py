@@ -9,9 +9,11 @@ from PIL import JpegImagePlugin, PngImagePlugin
 PIL_png: TypeAlias = PngImagePlugin.PngImageFile
 PIL_jpg: TypeAlias = JpegImagePlugin.JpegImageFile
 PIL_Img: TypeAlias = PIL_png | PIL_jpg
+PIL_Imgs: TypeAlias = list[PIL_Img]
 
 Path: TypeAlias = pathlib.Path
 Paths: TypeAlias = list[Path]
+Save_Result: TypeAlias = tuple[Path, bool]
 
 # geometry
 __Point_dtype: TypeAlias = Int
@@ -23,5 +25,5 @@ Rect_Like_: TypeAlias = tuple[Point_Like, int, int]
 Point_dtype: TypeAlias = int32
 
 # pixel
-MatMat: TypeAlias = list[list[Mat]]
+Mats = list[Mat]
 Pixel_dtype: TypeAlias = uint8

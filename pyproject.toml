@@ -13,6 +13,7 @@ google-cloud-vision = "^3.0.0"
 pdf2image = "^1.16.0"
 PyPDF2 = "^2.7.0"
 img2pdf = "^0.4.4"
+pyocr = "^0.8.3"
 [tool.poetry.dev-dependencies]
 black = "^22.6.0"
 nptyping = "^2.2.0"
@@ -21,6 +22,7 @@ flake8 = "^4.0.1"
 isort = "^5.10.1"
 pytest = "^7.1.2"
 ipykernel = "^6.15.1"
+matplotlib = "^3.5.2"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"

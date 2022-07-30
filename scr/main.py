@@ -1,101 +1,121 @@
-from itertools import chain
-from sys import argv
 from typing import Optional
-
-from google.cloud import vision
 
 from Convertor import Convertor
 from File import File
-from Frame import Frame
-from Type_Alias import Mat, Path
+from OCR_by_google import OCR
+from Type_Alias import Path, Paths
 
 
 # for preview
-def show_files(file_or_dir: Path | str, ext: str = "pdf"):
-    get_file_obj(file_or_dir, ext).print()
+def preview_files(file_or_dir: Path | str, ext: str = "pdf"):
+    """preview information of files that will be read by ocr.
+
+    Args:
+        file_or_dir: A path of file or directory.
+
+        ext: file extension you intend.
+        used only when you provide a directory path.
+    """
+    get_file_obj(file_or_dir, ext, expand=False)[0].print()
 
 
-def get_file_obj(file_or_dir: Path | str, ext: str = "pdf") -> File:
+def get_file_obj(
+    file_or_dir: Path | str, ext: str = "pdf", expand: bool = True
+) -> tuple[File, File]:
+    """get file objects that holds the directory structure of intended path.
+
+    Args:
+        file_or_dir: A path of file or directory.
+
+        ext: file extension you intend.
+        used only when you provide a directory path.
+
+        expand: whether to expand zip or pdf file to individual img files
+        in a new directory and return the directory
+        as the second of the returned values.
+
+    Return:
+
+        1st: File object of the file_or_dir.
+
+        2nd: Equal to 1st unless expand is true and 1st contains zip or pdf.
+        Otherwise equal to a File object of the newly created directory.
+    """
     path = Path(file_or_dir)
     if not path.exists():
         raise ValueError(f"Invalid argument. Not exists: {file_or_dir}")
     f: File = File()
+    # set appropriate path
     if path.is_file():
         f.read_file(path)
     else:
         f.read_dir(ext=ext, dir=path)
-    return f
+    if not expand:
+        return f, f
+    # expand compressed file
+    else:
+        f_read: File = f
+        if f.is_compressed_file():
+            f_read = f.get_unzip_file()
+        elif f.is_pdf_file():
+            c = Convertor()
+            c.read_file(f)
+            f_read = c.save_pdf_pages()
+        return f, f_read
 
 
-def get_framed_imgs(imgs: list[Mat]) -> list[Mat]:
-    return [Frame(img).get_framed_img() for img in imgs]
-
-
-def preview_contours(
-    file_or_dir: Path | str, ext: str = "pdf", dir_out: Optional[Path] = None
-):
-    f: File = get_file_obj(file_or_dir, ext)
-    dir_: Path = f.root if dir_out is None else dir_out
-    convertor = Convertor()
-    convertor.read_file(f)
-    imgs_out: list[Mat] = get_framed_imgs(convertor.imgs)
-    # save
-    convertor.read_Mat_imgs(imgs_out)
-    convertor.save_imgs(dir=dir_)
-
-
-# for ocr
-def get_cropped_imgs(imgs: list[Mat]) -> list[Mat]:
-    return list(chain.from_iterable([Frame(img).get_cropped_imgs() for img in imgs]))
+def get_text_from_imgs(img_paths: Paths) -> str:
+    """concatenate all the read text of images."""
+    texts: list[str] = []
+    for img_path in img_paths:
+        ocr = OCR()
+        ocr.read_img(img_path=img_path)
+        texts.append(ocr.get_text())
+    return "\n".join(texts)
 
 
 def ocr_by_cloud_vision_api(
-    file_or_dir: Path | str,
-    ext: str = "pdf",
-    dir_out: Optional[Path] = None,
-    language_hints: list[str] = ["ja", "eng"],
+    file_or_dir: Path | str, ext: str = "zip", dir_out: Optional[Path] = None
 ) -> None:
-    file: File = get_file_obj(file_or_dir, ext)
-    # get cropped imgs
-    convertor = Convertor()
-    convertor.read_file(file)
-    imgs_crroped: list[Mat] = get_cropped_imgs(convertor.imgs)
-    # turn them into binary form
-    convertor.read_Mat_imgs(imgs_crroped)
-    imgs_byte = convertor.generate_bytes_imgs()
-    # ocr and format texts
-    client = vision.ImageAnnotatorClient()
-    responses = [
-        client.document_text_detection(
-            image=vision.Image(content=img),
-            image_context={"language_hints": language_hints},
-        )
-        for img in imgs_byte
-    ]
-    output_text = ""
-    for response in responses:
-        for page in response.full_text_annotation.pages:
-            for block in page.blocks:
-                for paragraph in block.paragraphs:
-                    for word in paragraph.words:
-                        output_text += "".join([symbol.text for symbol in word.symbols])
-            output_text += "\n"
+    """ocr by google cloud vision api.
+
+    Args:
+        file_or_dir: A path of file or directory.
+
+        ext: file extension you intend.
+        used only when you provide a directory path.
+
+        dir_out: destination directory of the output text file.
+        The default uses that of file_or_path.
+    """
+    f, f_read = get_file_obj(file_or_dir, ext)
+    ocr_text: str = get_text_from_imgs(f_read.paths)
     # save text
-    dir_: Path = file.root if dir_out is None else dir_out
-    txt_path: Path = dir_ / f"{file.paths[0].stem}.txt"
-    with open(txt_path, mode="w") as f:
-        f.write(output_text)
+    text_path, success = save_text(text=ocr_text, file=f, dir_out=dir_out)
+    if not success:
+        msg = f"Error occurred while trying to save ocr text {text_path}"
+        raise Exception(msg)
+
+
+# def save_response(res: Response, file: File):
+#     path: Path = file.root / f"{file.paths[0].stem}_response.pickle"
+#     with open(str(path), "wb") as f:
+#         pickle.dump(res, f)
+
+
+def save_text(
+    text: str, file: File, dir_out: Optional[Path] = None
+) -> tuple[Path, bool]:
+    save_dir: Path = file.root if dir_out is None else dir_out
+    text_path: Path = save_dir / f"{file.paths[0].stem}.txt"
+    with open(text_path, mode="w") as tf:
+        tf.write(text)
+    return text_path, text_path.exists()
 
 
 if __name__ == "__main__":
+    # preview files to read
+    file = "./sample_files/kernel.zip"
+    # preview_files(file_or_dir=file)
     dir_out: Path = Path("./out")
-    # preview files
-    # show_files(path)
-    # preview contours
-    # list_args: list[str] = argv[1:]
-    # for path_str in list_args:
-    #     preview_contours(file_or_dir=path_str, dir_out=dir_out)
-
-    # ocr
-    file_path: str = argv[1]
-    ocr_by_cloud_vision_api(file_or_dir=file_path, ext="pdf", dir_out=dir_out)
+    ocr_by_cloud_vision_api(file_or_dir=file, dir_out=dir_out)

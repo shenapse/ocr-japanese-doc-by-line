@@ -90,48 +90,11 @@ class Rect:
             and self.__is_Point_Like(x[0])
             and isinstance(x[1], int)
             and isinstance(x[2], int)
-            and x[1] > 0
-            and x[2] > 0
+            and x[1] >= 0
+            and x[2] >= 0
         )
 
-    # def set_rect(self, p: Point_Like, width: int, height: int) -> Rect:
-    #     self.__check_points([p])
-    #     assert width >= 0
-    #     assert height >= 0
-    #     self.upper_left: Point = np.array(p)
-    #     self.width: int = width
-    #     self.height: int = height
-    #     return self
-
-    # def set_rect_from_points(
-    #     self, upper_left: Point_Like, lower_right: Point_Like
-    # ) -> Rect:
-    #      self.__check_points([upper_left, lower_right])
-    #     height: int = lower_right[1] - upper_left[1]
-    #     width: int = lower_right[0] - upper_left[0]
-    #     return self.set_rect(np.array(upper_left), width, height)
-
-    # def set_rect_from_contour(self, contour) -> Rect:
-    #     upper_left, _, lower_right, _ = contour
-    #     return self.set_rect_from_points(upper_left[0], lower_right[0])
-
-    # def __is_valid_rect(self) -> bool:
-    #     return (
-    #         assert_isinstance(self.upper_left, Point)
-    #         and self.width >= 0
-    #         and self.height >= 0
-    #     )
-
-    # def __check_points(self, ps: list[Point_Like]) -> bool:
-    #     for p in ps:
-    #         if isinstance(p, (list, tuple)):
-    #             assert len(p) == 2
-    #         else:
-    #             assert_isinstance(p, Point)
-    #     return True
-
     def get_rect_property(self) -> tuple[Point, int, int]:
-        # assert self.__is_valid_rect()
         return self.upper_left, self.width, self.height
 
     def get_corner_points(self) -> tuple[Point, Point, Point, Point]:
@@ -188,24 +151,3 @@ class Rects(list[Rect]):
         r = Rects(self)
         r.sort(reverse=reverse)
         return r
-
-
-if __name__ == "__main__":
-    x = [1, 2]
-    r = Rect((x, 1, 2))
-    # print(f"r = {r.get_rect_property()}")
-    # con = r.get_contour()
-    # print(f"con = {con}")
-    # rc = Rect(con)
-    # print(f"rc = {rc.get_rect_property()}")
-    # rs = Rects(np.array([r.get_contour()]))
-    # r2 = Rect(r)
-    # print(f"typeof r2 = {type(r2)}")
-    # print(r2.get_corner_points())
-    y = [0, 1]
-    r2 = Rect((y, 1, 2))
-    rs = Rects([r, r2])
-    print(f"rects = {rs.get_contours()}")
-    print("sort rects")
-    rs.sort()
-    print(f"sorted rects = {rs.get_contours()}")
