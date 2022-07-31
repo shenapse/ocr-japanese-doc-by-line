@@ -107,7 +107,7 @@ main.py の `ocr_by_cloud_vision_api(file_or_dir=)` にパスを与えて main.p
 
 - `ocr_by_cloud_vision_api()` 引数一覧
   - `file_or_dir: Path | str` : 必須. ファイルまたディレクトリのパス.
-  - `ext: str` : `file_or_dir` 引数でディレクトリを指定したときのみ利用される. ファイルパスを与えた場合は, この引数は無視される. デフォルトは `"zip"`.
+  - `ext: str` : `file_or_dir` 引数でディレクトリパスを指定したときのみ利用される. ファイルパスを指定した場合は, この引数は無視される. デフォルトは `"zip"`.
   - `dir_out: Path | None` : テキストファイルの出力フォルダ. デフォルトでは `file_or_dir` と同じディレクトリ.
   - `name_out: str | None` : 出力されるテキストファイルの名前. デフォルトでは読み込み対象ファイル達の最初のファイル名.
 
