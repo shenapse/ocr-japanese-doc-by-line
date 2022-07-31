@@ -20,6 +20,7 @@
             - [複数画像を綴じた pdf や zip を読み込む](#複数画像を綴じた-pdf-や-zip-を読み込む)
             - [【要注意】 ディレクトリ内の jpeg や png をまとめて読み込む](#要注意-ディレクトリ内の-jpeg-や-png-をまとめて読み込む)
             - [読み込むファイルのプレビュー](#読み込むファイルのプレビュー)
+    - [背景と関連ツール(おまけ)](#背景と関連ツールおまけ)
 
 ## 概要
 
@@ -92,11 +93,8 @@ png, jpeg, それらの zip, または pdf.
 このレポジトリをローカルに落としてプロジェクトトップに移動.
 
 ```bash
-git clone https://github.com/Shena4746/ocr-toc-python.git
-```
-
-```bash
-cd ./ocr-toc-python
+git clone https://github.com/Shena4746/ocr-japanese-toc.git
+cd ./ocr-japanese-toc
 ```
 
 pyenv で python 3.10.5 をプロジェクト内で有効化する.
@@ -112,7 +110,7 @@ pyenv install 3.10.5
 pyenv local 3.10.5
 ```
 
-このまま `poetry install` としたいところだが, 記載バージョンの poetry だと python 3.10.5 インタープリタを `.venv` に置いてくれない場合があるらしい. そこで, 念のため先に 3.10.5 インタープリタを `.venv` に置いておく.
+このまま `poetry install` としたいところだが, 記載バージョンの poetry だと pyenv で指定したインタープリタを `.venv` に置いてくれない場合があるらしい(!!). そこで, 念のため先に 3.10.5 インタープリタを `.venv` に置いておく.
 
 ```bash
 python3 -m venv .venv
@@ -235,3 +233,20 @@ preview_files(file_or_dir=file)
 # kernel.zip contains: ['006.png', '007.png', '008.png', '009.png', '010.png']
 # named temporary? False
 ```
+
+## 背景と関連ツール(おまけ)
+
+紙の本を pdf 化したお手製電子書籍への目次付与作業では目次のテキストが必要になる. ネット上に転がっていることもあるが, 本に記載されているレベルの詳細な目次を拾うことは一般には期待できない. そこで, 本の目次を OCR で抽出するツールを作ることにした.
+
+Google Cloud Vision の選択理由は, 精度とコストと軽さのバランスが良かったから. 特に, PyTorch などの GPU を要求するツールと同等以上の精度を持ちながら, ユーザー側にはそのマシンスペックを要求しない点が, ライトユーザーにもちょうど良いと判断した. 同 API は月間1000リクエストまで無料で使えるので, 目次抽出(1冊あたりせいぜい5ページ)用途であればコストは無視できるだろう.
+
+なお, 目次テキストが入手済という前提に立った pdf への目次付与ツールとして, 以下のようなものがある. OCR して得たテキストファイルの活用例として参考にされたい.
+
+- pdf への目次付与ツール
+  - [linux の gs コマンド](https://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Imaging/LSB-Imaging/gs.html#:~:text=The%20gs%20command%20invokes%20Ghostscript,executes%20them%20as%20Ghostscript%20programs.)
+  - [pdf_as](http://uchijyu.s601.xrea.com/wordpress/pdf_as/)
+  - [PDFtk](https://www.pdflabs.com/tools/pdftk-the-pdf-toolkit/)
+- これらのツールへの入力補助ツール
+  - [目次のないPDFに目次を追加する - gs](https://freak-da.hatenablog.com/entry/2019/09/17/113838)
+  - [PDFに目次を追加する - PDFtk](https://osanshouo.github.io/blog/2021/05/04-pdf-toc/)
+  - [booky - PDFtk](https://github.com/SiddharthPant/booky)
