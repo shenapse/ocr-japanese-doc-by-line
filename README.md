@@ -34,7 +34,7 @@ API 依存なので GPU は不要.
 [/sample/la_003.png](/sample/la_003.png) (東大出版「線形代数の世界」の目次の最初のページ)を読む場合.
 ![sample_png](/sample/la_003.png)
 
-以下の内容の main.py を実行.
+main.py の最下部に以下を書いて実行.
 
 ```python
 # main.py
@@ -45,6 +45,11 @@ if __name__ == "__main__":
     ocr_by_cloud_vision_api(file_or_dir=file, dir_out=dir_out)
 
     # get ./out/la_003.txt
+```
+
+```bash
+# run main.py
+poetry run python ./scr/main.py
 ```
 
 以下の出力 [/out/la_003.txt](/out/la_003.txt) が得られる.
@@ -76,7 +81,7 @@ V
 3.6固有多項式112
 ```
 
-zip や pdf を与えた場合のサンプルは sample と out ディレクトリを参照.
+zip や pdf を与えた場合の入出力サンプルは sample と out ディレクトリを参照. テキストファイルの行数が増えるだけで, 出力形式に違いはないことを確認されたい.
 
 ### 対応フォーマット
 

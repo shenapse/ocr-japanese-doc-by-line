@@ -125,7 +125,7 @@ def save_text(
 if __name__ == "__main__":
     # preview files to read
     file = "./sample/algebra"
-    # preview_files(file_or_dir=file, ext="png")
+    preview_files(file_or_dir=file, ext="png")
     dir_out: Path = Path("./out")
     name_out = Path(file).name
     ocr_by_cloud_vision_api(
