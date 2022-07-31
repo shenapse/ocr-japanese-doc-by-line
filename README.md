@@ -85,13 +85,44 @@ png, jpeg, それらの zip, または pdf.
 ## 環境 & インストール
 
 - Windows 10 + WSL2 + Ubuntu 20.04.3
-- python 3.10.5 (pyenv) + poetry
+- python 3.10.5 (pyenv 2.3.2) + poetry (1.1.11)
 
 ### インストール
 
-pyenv 等で python 3.10.5 が利用可能にしてあると仮定する.
+このレポジトリをローカルに落としてプロジェクトトップに移動.
 
-`git clone me` -> `cd project-top` -> `poetry install`.
+```bash
+git clone https://github.com/Shena4746/ocr-toc-python.git
+```
+
+```bash
+cd ./ocr-toc-python
+```
+
+pyenv で python 3.10.5 をプロジェクト内で有効化する.
+まだ 3.10.5 を pyenv に入れてなければ install する.
+
+```bash
+pyenv install 3.10.5
+```
+
+ローカルで有効化.
+
+```bash
+pyenv local 3.10.5
+```
+
+このまま `poetry install` としたいところだが, 記載バージョンの poetry だと python 3.10.5 インタープリタを `.venv` に置いてくれない場合があるらしい. そこで, 念のため先に 3.10.5 インタープリタを `.venv` に置いておく.
+
+```bash
+python3 -m venv .venv
+```
+
+準備が整ったので poetry を使ってパッケージのインストール.
+
+```bash
+poetry install
+```
 
 依存パッケージの詳細は, poetry.lock または poetry.toml を参照.
 
