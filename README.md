@@ -16,8 +16,8 @@
             - [出力テキストファイル](#出力テキストファイル)
             - [出力テキストファイルの名前](#出力テキストファイルの名前)
         - [サンプルコード](#サンプルコード)
-            - [単一の jpeg, png を読む](#単一の-jpeg-png-を読む)
-            - [複数画像を綴じた pdf や zip を読む](#複数画像を綴じた-pdf-や-zip-を読む)
+            - [単一の jpeg, png を読み込む](#単一の-jpeg-png-を読み込む)
+            - [複数画像を綴じた pdf や zip を読み込む](#複数画像を綴じた-pdf-や-zip-を読み込む)
             - [【要注意】 ディレクトリ内の jpeg や png をまとめて読み込む](#要注意-ディレクトリ内の-jpeg-や-png-をまとめて読み込む)
             - [読み込むファイルのプレビュー](#読み込むファイルのプレビュー)
 
@@ -33,16 +33,17 @@ API 依存なので GPU は不要.
 [/sample/la_003.png](/sample/la_003.png) (東大出版「線形代数の世界」の目次の最初のページ)を読む場合.
 ![sample_png](/sample/la_003.png)
 
-以下の内容の main.py を
+以下の内容の main.py を実行.
 
 ```python
-# main.py 
-file = "./sample/la_003.png"
-dir_out: Path = Path("./out") # optional
-# ocr and save text file
-ocr_by_cloud_vision_api(file_or_dir=file, dir_out=dir_out)
+# main.py
+if __name__ == "__main__":
+    file = "./sample/la_003.png"
+    dir_out: Path = Path("./out") # optional
+    # ocr and save text file
+    ocr_by_cloud_vision_api(file_or_dir=file, dir_out=dir_out)
 
-# get ./out/la_003.txt
+    # get ./out/la_003.txt
 ```
 
 以下の出力 [/out/la_003.txt](/out/la_003.txt) が得られる.
@@ -90,7 +91,7 @@ png, jpeg, それらの zip, または pdf.
 
 pyenv 等で python 3.10.5 が利用可能にしてあると仮定する.
 
-`git clone me` -> `cd project-top` -> `poetry install` -> `poetry shell`.
+`git clone me` -> `cd project-top` -> `poetry install`.
 
 依存パッケージの詳細は, poetry.lock または poetry.toml を参照.
 
@@ -102,11 +103,11 @@ pyenv 等で python 3.10.5 が利用可能にしてあると仮定する.
 
 ### 概要
 
-main.py の `ocr_by_cloud_vision_api(file_or_dir=)` にパスを与えると, OCR されたテキストファイルが出力される.
+main.py の `ocr_by_cloud_vision_api(file_or_dir=)` にパスを与えて main.py を実行すると, OCR されたテキストファイルが出力される.
 
 - `ocr_by_cloud_vision_api()` 引数一覧
   - `file_or_dir: Path | str` : 必須. ファイルまたディレクトリのパス.
-  - `ext: str` : 引数 `file_or_dir` でディレクトリを指定したときのみ利用される. ファイルパスを与えた場合は, この引数は無視される. デフォルトは `"zip"`.
+  - `ext: str` : `file_or_dir` 引数でディレクトリを指定したときのみ利用される. ファイルパスを与えた場合は, この引数は無視される. デフォルトは `"zip"`.
   - `dir_out: Path | None` : テキストファイルの出力フォルダ. デフォルトでは `file_or_dir` と同じディレクトリ.
   - `name_out: str | None` : 出力されるテキストファイルの名前. デフォルトでは読み込み対象ファイル達の最初のファイル名.
 
@@ -129,11 +130,11 @@ main.py の `ocr_by_cloud_vision_api(file_or_dir=)` にパスを与えると, OC
 
 `hey.png`, `hiya.jpeg`, `hi.pdf`, `hello.zip` など単一ファイルを読ませた場合は, それぞれの stemname を取って, `hey.txt`, `hiya.txt`, ... と出力される.
 
-ディレクトリを指定してファイルを読み込む場合はこの限りではない. ディレクトリ内の読み込み対象のファイル群のうちの, 最初のファイルの名前が出力テキストファイル名に採用される. 具体例はサンプルコードを参照.
+この例外に当たるのが, ディレクトリを指定してファイルを読み込む場合. このケースでは, ディレクトリ内の読み込み対象のファイル群のうちの, 最初のファイルの名前が出力テキストファイル名に採用される. 具体例はサンプルコードを参照.
 
 ### サンプルコード
 
-#### 単一の jpeg, png を読む
+#### 単一の jpeg, png を読み込む
 
 main.py で以下を実行すればよい.
 
@@ -149,7 +150,7 @@ ocr_by_cloud_vision_api(file_or_dir=file, dir_out=dir_out)
 # get ./out/la_003.txt
 ```
 
-#### 複数画像を綴じた pdf や zip を読む
+#### 複数画像を綴じた pdf や zip を読み込む
 
 ```python
 # for single but potentially multi page file such as zip or pdf
