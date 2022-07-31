@@ -75,7 +75,10 @@ def get_text_from_imgs(img_paths: Paths) -> str:
 
 
 def ocr_by_cloud_vision_api(
-    file_or_dir: Path | str, ext: str = "zip", dir_out: Optional[Path] = None
+    file_or_dir: Path | str,
+    ext: str = "zip",
+    dir_out: Optional[Path] = None,
+    name_out: Optional[str] = None,
 ) -> None:
     """ocr by google cloud vision api.
 
@@ -87,27 +90,33 @@ def ocr_by_cloud_vision_api(
 
         dir_out: destination directory of the output text file.
         The default uses that of file_or_path.
+
+        name_out: stem name for the output text file.
+        Default uses the file name file name if input is single zip or pdf,
+        and the name of the first file (like 005.png -> 005.txt)
+        in the directory if image files are provided.
+        Note that the latter case could overwrite an output text file.
     """
     f, f_read = get_file_obj(file_or_dir, ext)
     ocr_text: str = get_text_from_imgs(f_read.paths)
     # save text
-    text_path, success = save_text(text=ocr_text, file=f, dir_out=dir_out)
+    text_path, success = save_text(
+        text=ocr_text, file=f, dir_out=dir_out, name_out=name_out
+    )
     if not success:
         msg = f"Error occurred while trying to save ocr text {text_path}"
         raise Exception(msg)
 
 
-# def save_response(res: Response, file: File):
-#     path: Path = file.root / f"{file.paths[0].stem}_response.pickle"
-#     with open(str(path), "wb") as f:
-#         pickle.dump(res, f)
-
-
 def save_text(
-    text: str, file: File, dir_out: Optional[Path] = None
+    text: str,
+    file: File,
+    dir_out: Optional[Path] = None,
+    name_out: Optional[str] = None,
 ) -> tuple[Path, bool]:
     save_dir: Path = file.root if dir_out is None else dir_out
-    text_path: Path = save_dir / f"{file.paths[0].stem}.txt"
+    stem_name: str = f"{file.paths[0].stem}" if name_out is None else name_out
+    text_path: Path = save_dir / f"{stem_name}.txt"
     with open(text_path, mode="w") as tf:
         tf.write(text)
     return text_path, text_path.exists()
@@ -115,7 +124,10 @@ def save_text(
 
 if __name__ == "__main__":
     # preview files to read
-    file = "./sample_files/kernel.zip"
-    # preview_files(file_or_dir=file)
+    file = "./sample/algebra"
+    # preview_files(file_or_dir=file, ext="png")
     dir_out: Path = Path("./out")
-    ocr_by_cloud_vision_api(file_or_dir=file, dir_out=dir_out)
+    name_out = Path(file).name
+    ocr_by_cloud_vision_api(
+        file_or_dir=file, ext="png", dir_out=dir_out, name_out=name_out
+    )

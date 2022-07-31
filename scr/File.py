@@ -73,8 +73,12 @@ class File:
         """read files with the intended extension in the directory.
         Use ONLY WHEN you need to scan image files, not pdf or zip."""
         assert dir.is_dir()
-        assert ext in self.supported_ext
-        # assert self.__is_valid_path(dir)
+        if ext not in self.img_ext:
+            msg = (
+                "Can't read non-image files by specifying directory.\n"
+                + f"dir={dir.resolve()}\next={ext}"
+            )
+            raise ValueError(msg)
         self.__ext = ext
         self.__root = dir
         key = ".".join(["*", ext])
@@ -82,6 +86,9 @@ class File:
 
     def is_empty(self) -> bool:
         return self.paths == []
+
+    def clear(self) -> None:
+        self.__init__()
 
     def is_set(self) -> bool:
         return self.__ext != File.NOT_SET
@@ -133,6 +140,7 @@ class File:
         return [((p.resolve() if as_abs else p), self.n_pages(p)) for p in ps]
 
     def n_pages(self, path: Path) -> int:
+        assert not self.is_compressed_file()
         return (
             1
             if self.__get_ext(path) in File.__img_ext

@@ -3,7 +3,6 @@
 /gac.json
 *.venv
 /scr/*
-!/scr/Frame.py
 !/scr/Rect.py
 !/scr/Convertor.py
 !/scr/File.py
