@@ -251,4 +251,4 @@ Google Cloud Vision の選択理由は, 精度とコストと軽さのバラン�
   - [PDFに目次を追加する - PDFtk](https://osanshouo.github.io/blog/2021/05/04-pdf-toc/)
   - [booky - PDFtk](https://github.com/SiddharthPant/booky)
 - これらの入力補助ツールへの入力補助ツール
-  - [tesseract-zip-pdf-dir - 主に英語の ocr 補助ツール](https://github.com/Shena4746/tesseract-zip-pdf-dir)
+  - [tesseract-zip-pdf-dir - 英語版 ocr 補助ツール](https://github.com/Shena4746/tesseract-zip-pdf-dir)
