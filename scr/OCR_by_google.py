@@ -8,9 +8,7 @@ from typing import Final, TypeGuard
 
 import numpy as np
 from google.cloud import vision
-from google.cloud.vision_v1.types.image_annotator import (
-    AnnotateImageResponse as Response,
-)
+from google.cloud.vision_v1.types.image_annotator import AnnotateImageResponse as Response
 
 from Rect import Rect
 from Type_Alias import Contour, Path, Point_dtype
@@ -27,7 +25,7 @@ class Box(Rect):
 
 
 class IOCR(metaclass=abc.ABCMeta):
-    """Interface for Frame class"""
+    """Interface for COR class"""
 
     @abc.abstractclassmethod
     def read_img(self, img_path: Path) -> None:
