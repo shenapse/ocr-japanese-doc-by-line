@@ -127,8 +127,8 @@ png, jpeg, それらの zip, または pdf.
 このレポジトリをローカルに落としてプロジェクトトップに移動.
 
 ```bash
-git clone https://github.com/Shena4746/ocr-japanese-toc.git
-cd ./ocr-japanese-toc
+git clone https://github.com/Shena4746/ocr-japanese-doc-by-line.git
+cd ./ocr-japanese-doc-by-line
 ```
 
 pyenv で python 3.10.5 をプロジェクト内で有効化する.
