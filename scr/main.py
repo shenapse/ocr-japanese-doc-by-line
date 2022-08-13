@@ -7,7 +7,7 @@ from Type_Alias import Path, Paths
 
 
 # for preview
-def preview_files(file_or_dir: Path | str, ext: str = "pdf"):
+def preview_files(file_or_dir: Path | str, ext: str = "png"):
     """preview information of files that will be read by ocr.
 
     Args:
@@ -19,9 +19,7 @@ def preview_files(file_or_dir: Path | str, ext: str = "pdf"):
     get_file_obj(file_or_dir, ext, expand=False)[0].print()
 
 
-def get_file_obj(
-    file_or_dir: Path | str, ext: str = "pdf", expand: bool = True
-) -> tuple[File, File]:
+def get_file_obj(file_or_dir: Path | str, ext: str = "png", expand: bool = True) -> tuple[File, File]:
     """get file objects that holds the directory structure of intended path.
 
     Args:
@@ -76,7 +74,7 @@ def get_text_from_imgs(img_paths: Paths) -> str:
 
 def ocr_by_cloud_vision_api(
     file_or_dir: Path | str,
-    ext: str = "zip",
+    ext: str = "png",
     dir_out: Optional[Path] = None,
     name_out: Optional[str] = None,
 ) -> None:
@@ -100,9 +98,7 @@ def ocr_by_cloud_vision_api(
     f, f_read = get_file_obj(file_or_dir, ext)
     ocr_text: str = get_text_from_imgs(f_read.paths)
     # save text
-    text_path, success = save_text(
-        text=ocr_text, file=f, dir_out=dir_out, name_out=name_out
-    )
+    text_path, success = save_text(text=ocr_text, file=f, dir_out=dir_out, name_out=name_out)
     if not success:
         msg = f"Error occurred while trying to save ocr text {text_path}"
         raise Exception(msg)
@@ -128,6 +124,4 @@ if __name__ == "__main__":
     preview_files(file_or_dir=file, ext="png")
     dir_out: Path = Path("./out")
     name_out = Path(file).name
-    ocr_by_cloud_vision_api(
-        file_or_dir=file, ext="png", dir_out=dir_out, name_out=name_out
-    )
+    ocr_by_cloud_vision_api(file_or_dir=file, ext="png", dir_out=dir_out, name_out=name_out)
