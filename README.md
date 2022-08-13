@@ -30,7 +30,7 @@ API 依存なので GPU は不要.
 ![sample_png](/sample/la_003.png)
 
 ```bash
-# ocr-gcv is an alias for '/abs-path/to/.venv/python3 /abs-path/to/ocr-gcv.py'
+# ocr-gcv is an alias for '/abs-path/to/.venv/bin/python3 /abs-path/to/ocr-gcv.py'
 ocr-gcv ./sample/la_003.png -d ./out/
 # save la_003.txt
 ```
