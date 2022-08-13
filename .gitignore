@@ -8,6 +8,7 @@
 !/scr/File.py
 !/scr/Type_Alias.py
 !/scr/OCR_by_google.py
+!/scr/ocr-gcv.py
 !/scr/main.py
 !/scr/pdf/
 !/scr/out/

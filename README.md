@@ -6,20 +6,10 @@
     - [目次](#目次)
     - [概要](#概要)
         - [サンプル](#サンプル)
-        - [行抽出のアプローチ方法](#行抽出のアプローチ方法)
         - [対応フォーマット](#対応フォーマット)
-    - [環境 & インストール](#環境--インストール)
-        - [インストール](#インストール)
+    - [インストール](#インストール)
         - [Google Cloud Vision API key の有効化](#google-cloud-vision-api-key-の有効化)
     - [使い方](#使い方)
-        - [概要](#概要-1)
-            - [出力テキストファイル数](#出力テキストファイル数)
-            - [出力テキストファイルの名前](#出力テキストファイルの名前)
-        - [サンプルコード](#サンプルコード)
-            - [単一の jpeg, png を読み込む](#単一の-jpeg-png-を読み込む)
-            - [複数画像を綴じた pdf や zip を読み込む](#複数画像を綴じた-pdf-や-zip-を読み込む)
-            - [【要注意】 ディレクトリ内の jpeg や png をまとめて読み込む](#要注意-ディレクトリ内の-jpeg-や-png-をまとめて読み込む)
-            - [読み込むファイルのプレビュー](#読み込むファイルのプレビュー)
     - [関連ツール(参考)](#関連ツール参考)
 
 ## 概要
@@ -30,29 +20,19 @@ OCR は Google Cloud Vision API を利用している.
 API のリクエスト消費量 = 処理したページ数.
 API 依存なので GPU は不要.
 
-対象言語が英語等のアルファベットのような文字ならば, tesseract で十分な精度が出るので, このレポジトリのスクリプトを使う実益はない.
+対象言語が英語等のアルファベットのような文字ならば, [tesseract](https://github.com/tesseract-ocr/tesseract) で十分な精度が出るので, このレポジトリのスクリプトを使う実益はない.
+
+行認識のアプローチは[ここ](/idea.md)にメモした.
 
 ### サンプル
 
-[/sample/la_003.png](/sample/la_003.png) (東大出版「線形代数の世界」の目次の最初のページ)を読む場合.
+[/sample/la_003.png](/sample/la_003.png) (東大出版「線形代数の世界」の目次の最初のページ)を読んで [out](./out/) ディレクトリにテキストファイルとして保存する場合.
 ![sample_png](/sample/la_003.png)
 
-main.py の最下部に以下を書いて実行.
-
-```python
-# scr/main.py
-if __name__ == "__main__":
-    file = "./sample/la_003.png"
-    dir_out: Path = Path("./out") # optional
-    # ocr and save text file
-    ocr_by_cloud_vision_api(file_or_dir=file, dir_out=dir_out)
-
-    # get ./out/la_003.txt
-```
-
 ```bash
-# run main.py
-poetry run python ./scr/main.py
+# ocr-gcv is an alias for '/abs-path/to/.venv/python3 /abs-path/to/ocr-gcv.py'
+ocr-gcv ./sample/la_003.png -d ./out/
+# save la_003.txt
 ```
 
 以下の出力 [/out/la_003.txt](/out/la_003.txt) が得られる.
@@ -84,47 +64,18 @@ V
 3.6固有多項式112
 ```
 
-zip や pdf を与えた場合の入出力サンプルは [sample](/sample/) と [out](/out/) ディレクトリを参照. テキストファイルの行数が増えるだけで, 出力形式に違いはないことを確認されたい. なお, このレポジトリは, 元々は本の目次をOCR することを目的としていたため, 今のところ, サンプルは目次に偏っている(そのうち他の例も補充したい).
-
-### 行抽出のアプローチ方法
-
-まず, 前提知識として, 現在の Google Cloud Vision (GCV) の OCR をユーザーとして利用する上での注意点を大雑把に整理する. GCV は, 文章を含む画像の適当な部分集合を, 文章ブロックやパラグラフ等の構造化された単位に分解した上で, その中の文字と位置情報を数文字単位で返す.
-
-この文字認識の精度は, 日本語の場合でも実用可能なレベルで高い. 他方で, この文章構造の分解の仕方は, 元の文書のそれを正確に反映するとは限らない. 実際, GCV の解析した通りにセンテンスを出力してみると元々の文章の順番が狂うということがしばしば起こる. たとえば, 次のような本の目次の場合, Preface 等とページ番号が別ブロックとして, したがって, 別パラグラフとして認識されるため, OCR 結果を素朴に並べるとページ番号が別行に移されてしまう.
-
-```text
-(Input image)
-Table of Contents
-Preface                     iii
-Chapter I Introduction      1
-```
-
-```text
-(Output text)
-Table of Contents
-Preface
-Chapter I Introduction
-iii
-1
-```
-
-つまり, 意図した結果を得るには, 入力した文章の視覚的配置に応じて, 適切に出力文字の再順序化を施す必要がある.
-
-このレポジトリのスクリプトは, 入力した文章が, 横書きの一段組であるという前提を置いて, 出力文字の再順序化を行う. GCV の解析したブロック情報やパラグラフ等の構造を無視して, 各文字の位置情報から各行を定義する. 次いで, 行同士および各行内の文字の順番を整えることで, 横書き一段組の場合の文章の配置を復元する.
+zip や pdf を与えた場合の入出力サンプルは [sample](/sample/) と [out](/out/) ディレクトリを参照. テキストファイルの行数が増えるだけで, 出力形式に違いはないことを確認されたい. なお, このレポジトリは, 元々は本の目次を OCR することを目的としていたため, 今のところ, サンプルは目次に偏っている.
 
 ### 対応フォーマット
 
 png, jpeg, それらの zip, または pdf.
 ただし, pdf だと他のフォーマットに比べて著しく遅くなる. これは, pdf を png 等の画像形式へ変換する処理がボトルネックとなるため.
 
-## 環境 & インストール
+## インストール
 
-- Windows 10 + WSL2 + Ubuntu 20.04.3
-- python 3.10.5 (pyenv 2.3.2) + poetry (1.1.11)
-
-### インストール
-
-このレポジトリをローカルに落としてプロジェクトトップに移動.
+- テスト環境
+  - Windows 10 + WSL2 + Ubuntu 20.04.3
+  - python 3.10.5 (pyenv 2.3.2) + poetry (1.1.11)
 
 ```bash
 git clone https://github.com/Shena4746/ocr-japanese-doc-by-line.git
@@ -144,19 +95,12 @@ pyenv install 3.10.5
 pyenv local 3.10.5
 ```
 
-このまま `poetry install` としたいところだが, 記載バージョンの poetry だと pyenv で指定したインタープリタを `.venv` に置いてくれない場合があるらしい(!!). そこで, 念のため先に 3.10.5 インタープリタを `.venv` に置いておく.
+このまま `poetry install` としたいところだが, 記載バージョンの poetry だと pyenv で指定したインタープリタを `.venv` に置いてくれない場合があるらしい(!!). そこで, 念のため先に 3.10.5 インタープリタを先に `.venv` に置く操作を挟む.
 
 ```bash
 python3 -m venv .venv
-```
-
-準備が整ったので poetry を使ってパッケージのインストール.
-
-```bash
 poetry install
 ```
-
-依存パッケージの詳細は, poetry.lock または poetry.toml を参照.
 
 ### Google Cloud Vision API key の有効化
 
@@ -164,110 +108,24 @@ poetry install
 
 ## 使い方
 
-### 概要
+[tesseract-zip-pdf-dir](https://github.com/Shena4746/tesseract-zip-pdf-dir) と同じなので, そちらを参照.
 
-main.py の `ocr_by_cloud_vision_api(file_or_dir=)` にパスを与えて main.py を実行すると, OCR されたテキストファイルが出力される.
+先に書いたサンプルコードのように,
 
-- `ocr_by_cloud_vision_api()` 引数一覧
-  - `file_or_dir: Path | str` : 必須. ファイルまたディレクトリのパス.
-  - `ext: str` : `file_or_dir` 引数でディレクトリパスを指定したときのみ利用される. ファイルパスを指定した場合は, この引数は無視される. デフォルトは `"zip"` ディレクトリを指定した際, 読み込むファイルの種類を指定する.
-  - `dir_out: Path | None` : テキストファイルの出力フォルダ. デフォルトでは `file_or_dir` と同じディレクトリ.
-  - `name_out: str | None` : 出力されるテキストファイルの名前. デフォルトでは読み込み対象ファイル達の最初のファイル名.
-
-- `ocr_by_cloud_vision_api(file_or_dir=)` が受け取れるパスの種類一覧
-  - png, jpeg, pdf, zip (中身は png のみか jpeg のみ) のファイルパス
-  - png または jpeg を含むディレクトリのパス
-
-#### 出力テキストファイル数
-
-`ocr_by_cloud_vision_api()` は常に1つのテキストファイルを保存する.
-
-[受け取れるパス](#受け取れるパス) に書いたいずれの場合でも, 与えられたパスが含む(多くの場合複数の)画像を1つのまとまりと解釈して, 1つのテキストファイルを出力する.
-たとえば, 1つの png ファイルが含む画像は1枚で, 3ページから成る pdf が含む画像は3枚だが, このどちらの場合でも出力されるテキストファイルは1つのみ.
-
-#### 出力テキストファイルの名前
-
-`hey.png`, `hiya.jpeg`, `hi.pdf`, `hello.zip` など単一ファイルを読ませた場合は, それぞれの stemname を取って, `hey.txt`, `hiya.txt`, ... と出力される.
-
-この例外に当たるのが, ディレクトリを指定してファイルを読み込む場合. このケースでは, ディレクトリ内の読み込み対象のファイル群のうちの, 最初のファイルの名前が出力テキストファイル名に採用される. 具体例はサンプルコードを参照.
-
-### サンプルコード
-
-#### 単一の jpeg, png を読み込む
-
-main.py で以下を実行すればよい.
-
-```python
-# for single image file such as jpeg or png
-file = "./sample/la_003.png"
-# output directory for text file
-# default uses the directory of the input file,
-# e.g., sample directory in this case
-dir_out: Path = Path("./out") # Path is an alias for pathlib.Path
-ocr_by_cloud_vision_api(file_or_dir=file, dir_out=dir_out)
-
-# get ./out/la_003.txt
+```bash
+ocr-gcv your-file.zip
 ```
 
-#### 複数画像を綴じた pdf や zip を読み込む
+のように呼びたいなら, たとえば, 以下のようなエイリアスを ~/.bashrc に加えておく.
 
-```python
-# for single but potentially multi page file such as zip or pdf
-file = "./sample/kernel.zip"
-dir_out: Path = Path("./out")
-ocr_by_cloud_vision_api(file_or_dir=file, dir_out=dir_out)
-
-# get ./out/kernel.txt
-```
-
-#### 【要注意】 ディレクトリ内の jpeg や png をまとめて読み込む
-
-この場合も OCR 結果はひとつのテキストファイルとして出力される.
-この場合, `name_out=` 引数を与えないと `006.txt` と出力される. このような識別性の低い名前を使うと, 出力テキストファイルが上書きされるリスクが高くなることに注意.
-以下の例では, `name_out=directory_name` とした.
-
-```python
-# for all png files in sample_files directory
-dir = "./sample/algebra" # ['006.png', '007.png', '008.png']
-dir_out: Path = Path("./out")
-name_out:str = Path(dir).name # algebra
-ocr_by_cloud_vision_api(
-    file_or_dir=dir, ext="png", dir_out=dir_out, name_out=name_out
-)
-
-# get ./out/algebra.txt
-```
-
-ディレクトリ内の複数の pdf や zip をまとめて読み込むことはできない.
-
-```python
-# trying to read pdfs by specifying directory causes an error
-dir = "./sample"
-preview_files(file_or_dir=dir, ext="pdf")
-
-# ValueError: Can't read non-image files by specifying directory.
-# dir=/absolute/path/sample
-# ext=pdf
-```
-
-#### 読み込むファイルのプレビュー
-
-パスを指定した際に処理されるファイル情報を確認したいときに使う.
-
-```python
-# preview files to read
-file = "./sample/kernel.zip"
-preview_files(file_or_dir=file)
-# 'root:/absolute/path/sample'
-# 'extension:zip'
-# kernel.zip contains: ['006.png', '007.png', '008.png', '009.png', '010.png']
-# named temporary? False
+```bash
+alias ocr-gcv='/abs-path/to/.venv/bin/python3 /abs-path/to/ocr-gcv.py'
 ```
 
 ## 関連ツール(参考)
 
 目次テキストファイルの活用先として pdf への目次付与がある.
-目次テキストが入手済という前提に立った pdf への目次付与ツールとして, 以下のようなものがある.
+それを行うツールのうち, 目次テキストが入手済という前提に立ったものには, 以下のようなものがある.
 
 - pdf への目次付与ツール
   - [linux の gs コマンド](https://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Imaging/LSB-Imaging/gs.html#:~:text=The%20gs%20command%20invokes%20Ghostscript,executes%20them%20as%20Ghostscript%20programs.)
