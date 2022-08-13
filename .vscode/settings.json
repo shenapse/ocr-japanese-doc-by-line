@@ -28,6 +28,9 @@
 	"python.linting.ignorePatterns": [
 		"tests/**/*.py"
 	],
+	"python.linting.flake8Args": [
+		"--ignore=E501"
+	],
 	"python.formatting.blackPath": "${workspaceFolder}/.venv/bin/black",
 	"python.formatting.provider": "black",
 	"python.formatting.blackArgs": [
