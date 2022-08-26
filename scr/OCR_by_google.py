@@ -172,10 +172,6 @@ class OCR(IOCR):
             if line == []:
                 continue
             thr: int = self._get_horizontal_threshold(line)
-            print(f"thr={thr}")
-            print(
-                f"line(between,text)={[(box.x - (line[i-1].x+line[i-1].width), box.text) for i, box in enumerate(line) if 0<i<len(line)]}"
-            )
             new_line: list[Box] = []
             box_last: Box = line[0]
             for box in line:
@@ -217,11 +213,3 @@ class OCR(IOCR):
         if any(len(line) != 1 for line in self.get_lines()):
             self._merge_lines()
         return "\n".join([box.text for box in chain.from_iterable(self.get_lines())])
-
-
-# sample
-if __name__ == "__main__":
-    img_file: Path = Path("./image_file_to_ocr.png")
-    ocr = OCR()
-    ocr.read_img(img_file)
-    print(ocr.get_text())
