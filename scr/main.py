@@ -118,10 +118,9 @@ def save_text(
     return text_path, text_path.exists()
 
 
-if __name__ == "__main__":
-    # preview files to read
-    file = "./sample/algebra"
-    preview_files(file_or_dir=file, ext="png")
-    dir_out: Path = Path("./out")
-    name_out = Path(file).name
-    ocr_by_cloud_vision_api(file_or_dir=file, ext="png", dir_out=dir_out, name_out=name_out)
+def ocr_zips_at_once(dir: Path | str, dir_out: Optional[Path] = None):
+    dir = Path(dir)
+    if not dir.is_dir():
+        raise ValueError(f"{dir} is not a directory.")
+    for file in dir.glob("*.zip"):
+        ocr_by_cloud_vision_api(file, dir_out=dir_out)
