@@ -10,7 +10,6 @@
     - [インストール](#インストール)
         - [Google Cloud Vision API key の有効化](#google-cloud-vision-api-key-の有効化)
     - [使い方](#使い方)
-    - [関連ツール(参考)](#関連ツール参考)
 
 ## 概要
 
@@ -21,8 +20,6 @@ API のリクエスト消費量 = 処理したページ数.
 API 依存なので GPU は不要.
 
 対象言語が英語等のアルファベットのような文字ならば, [tesseract](https://github.com/tesseract-ocr/tesseract) で十分な精度が出るので, このレポジトリのスクリプトを使う実益はない.
-
-GCV のレスポンスを処理して各行を再構成するアプローチは[ここ](/idea.md)にメモした.
 
 ### サンプル
 
@@ -125,19 +122,3 @@ ocr-gcv your-file.zip
 ```bash
 alias ocr-gcv='/abs-path/to/.venv/bin/python3 /abs-path/to/ocr-gcv.py'
 ```
-
-## 関連ツール(参考)
-
-目次テキストファイルの活用先として pdf への目次付与がある.
-それを行うツールのうち, 目次テキストが入手済という前提に立ったものには, 以下のようなものがある.
-
-- pdf への目次付与ツール
-  - [linux の gs コマンド](https://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Imaging/LSB-Imaging/gs.html#:~:text=The%20gs%20command%20invokes%20Ghostscript,executes%20them%20as%20Ghostscript%20programs.)
-  - [pdf_as](http://uchijyu.s601.xrea.com/wordpress/pdf_as/)
-  - [PDFtk](https://www.pdflabs.com/tools/pdftk-the-pdf-toolkit/)
-- これらのツールへの入力補助ツール
-  - [目次のないPDFに目次を追加する - gs](https://freak-da.hatenablog.com/entry/2019/09/17/113838)
-  - [PDFに目次を追加する - PDFtk](https://osanshouo.github.io/blog/2021/05/04-pdf-toc/)
-  - [booky - PDFtk](https://github.com/SiddharthPant/booky)
-- これらの入力補助ツールへの入力補助ツール
-  - [tesseract-zip-pdf-dir - 英語版 ocr 補助ツール](https://github.com/Shena4746/tesseract-zip-pdf-dir)
