@@ -44,18 +44,14 @@ class Rect:
             self.width = w
             self.height = h
         else:
-            raise TypeError("Rects failed to initialize. Invalid type.")
+            raise TypeError(f"Rects failed to initialize. Invalid type x={type(x)}")
 
     def __lt__(self, other) -> bool:
         # compare by upper-left y
         return self.y < other.y
 
     def __is_Point(self, x: Point_Like) -> TypeGuard[Point]:
-        return (
-            isinstance(x, NDArray)
-            and x.shape == self.__point_shape
-            and x.dtype == Point_dtype
-        )
+        return isinstance(x, NDArray) and x.shape == self.__point_shape and x.dtype == Point_dtype
 
     def __is_Point_Like(self, x: Any) -> TypeGuard[Point_Like]:
         return (
@@ -73,15 +69,9 @@ class Rect:
         return p if self.__is_Point(p) else np.array([p], dtype=Point_dtype)
 
     def __is_contour(self, x: NDArray[Any, Any]) -> TypeGuard[Contour]:
-        return (
-            isinstance(x, NDArray)
-            and x.shape == self.__contour_shape
-            and x.dtype == Point_dtype
-        )
+        return isinstance(x, NDArray) and x.shape == self.__contour_shape and x.dtype == Point_dtype
 
-    def __is_Rect_like(
-        self, x: Rect | Rect_Like_ | Iterable
-    ) -> TypeGuard[Rect_Like_ | Rect]:
+    def __is_Rect_like(self, x: Rect | Rect_Like_ | Iterable) -> TypeGuard[Rect_Like_ | Rect]:
         return (
             True
             if isinstance(x, Rect)
@@ -131,11 +121,7 @@ class Rects(list[Rect]):
             raise TypeError(msg)
 
     def __is_contours(self, x: Any) -> TypeGuard[Contours]:
-        return (
-            isinstance(x, NDArray)
-            and x.shape[1:] == self.__contour_shape
-            and x.dtype == Point_dtype
-        )
+        return isinstance(x, NDArray) and x.shape[1:] == self.__contour_shape and x.dtype == Point_dtype
 
     def get_rects_obj(self) -> Rects:
         return self
