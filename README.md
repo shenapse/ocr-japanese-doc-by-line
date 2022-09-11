@@ -109,7 +109,7 @@ poetry install
 ocr-gcv ocr --help
 ```
 
-[tesseract-zip-pdf-dir](https://github.com/Shena4746/tesseract-zip-pdf-dir).
+使い方は, [tesseract-zip-pdf-dir](https://github.com/Shena4746/tesseract-zip-pdf-dir) とほとんど同じ.
 
 先に書いたサンプルコードのように,
 
