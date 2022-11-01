@@ -5,7 +5,7 @@ description = ""
 authors = ["shena<https://github.com/Shena4746/ocr-toc-python>"]
 
 [tool.poetry.dependencies]
-python = "3.10.5"
+python = "3.10.7"
 numpy = "^1.23.1"
 opencv-python = "^4.6.0"
 google-cloud-vision = "^3.0.0"
