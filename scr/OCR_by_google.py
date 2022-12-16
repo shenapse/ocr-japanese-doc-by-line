@@ -135,7 +135,7 @@ class OCR(IOCR):
                             w: int = ver[1].x - x
                             h: int = ver[3].y - y
                             text = symbol.text
-                            p: tuple[int, int] = (x, y)
+                            p: tuple[int, int] = (max(0, x), max(0, y))
                             rect = Rect((p, w, h))
                             box = Box(text, rect)
                             boxes.append(box)
